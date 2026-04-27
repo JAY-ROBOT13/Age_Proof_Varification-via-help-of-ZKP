@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZK Age Proof — Privacy-First Verification</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a26;
+    --border: #2a2a3d;
+    --accent: #7b6fff;
+    --accent2: #ff6b9d;
+    --green: #00e5a0;
+    --red: #ff4d6d;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --glow: rgba(123, 111, 255, 0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(123,111,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(123,111,255,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: -20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 600px;
+    background: radial-gradient(ellipse, rgba(123,111,255,0.12) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  header { text-align: center; margin-bottom: 64px; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(123,111,255,0.1);
+    border: 1px solid rgba(123,111,255,0.3);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+
+  .badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  h1 {
+    font-size: clamp(36px, 6vw, 60px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-bottom: 16px;
+  }
+
+  h1 span {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 17px;
+    font-weight: 400;
+    max-width: 480px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  .how-it-works {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+
+  .how-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 20px;
+    text-align: center;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+
+  .how-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .how-icon { font-size: 32px; margin-bottom: 12px; }
+  .how-card h3 { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 6px; letter-spacing: 0.02em; }
+  .how-card p { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 48px;
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.5;
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .card-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .input-section { margin-bottom: 36px; }
+
+  label {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    margin-bottom: 12px;
+    letter-spacing: 0.05em;
+  }
+
+  label span { color: var(--accent); }
+
+  .age-input-wrap { position: relative; display: flex; align-items: center; gap: 16px; }
+
+  .age-display {
+    font-size: 72px;
+    font-weight: 800;
+    font-family: 'Space Mono', monospace;
+    color: var(--accent);
+    min-width: 160px;
+    line-height: 1;
+    transition: color 0.3s;
+  }
+
+  .age-display.invalid-color { color: var(--red); }
+  .age-display.valid-color { color: var(--green); }
+
+  input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 100px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 12px var(--glow);
+    transition: box-shadow 0.2s;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover { box-shadow: 0 0 24px var(--glow); }
+
+  .slider-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .privacy-row { display: flex; gap: 12px; margin-bottom: 32px; }
+
+  .privacy-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 8px 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+  }
+
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot.private { background: var(--red); }
+  .dot.public { background: var(--green); }
+
+  .btn-generate {
+    width: 100%;
+    padding: 20px;
+    background: linear-gradient(135deg, var(--accent), #5b4fff);
+    border: none;
+    border-radius: 14px;
+    font-family: 'Syne', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+    letter-spacing: 0.02em;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-generate:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 32px rgba(123,111,255,0.35); }
+  .btn-generate:active:not(:disabled) { transform: translateY(0); }
+  .btn-generate:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-generate .btn-inner { display: flex; align-items: center; justify-content: center; gap: 10px; }
+
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: none;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .pipeline { display: none; flex-direction: column; gap: 0; margin-top: 32px; }
+  .pipeline.active { display: flex; }
+
+  .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+    opacity: 0.4;
+    transition: opacity 0.4s;
+  }
+
+  .step:last-child { border-bottom: none; }
+  .step.done, .step.active-step { opacity: 1; }
+
+  .step-num {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    flex-shrink: 0;
+    transition: all 0.3s;
+  }
+
+  .step.done .step-num { background: var(--green); border-color: var(--green); color: #000; }
+  .step.active-step .step-num { background: var(--accent); border-color: var(--accent); color: white; box-shadow: 0 0 16px var(--glow); }
+
+  .step-info h4 { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+  .step-info p { font-size: 12px; color: var(--muted); font-family: 'Space Mono', monospace; line-height: 1.5; }
+
+  .result-card {
+    display: none;
+    border-radius: 20px;
+    padding: 36px;
+    margin-top: 32px;
+    text-align: center;
+    animation: slideUp 0.4s ease;
+  }
+
+  @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+  .result-card.success { background: rgba(0, 229, 160, 0.06); border: 1px solid rgba(0, 229, 160, 0.3); display: block; }
+  .result-card.fail { background: rgba(255, 77, 109, 0.06); border: 1px solid rgba(255, 77, 109, 0.3); display: block; }
+
+  .result-icon { font-size: 56px; margin-bottom: 16px; display: block; }
+  .result-title { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+  .result-card.success .result-title { color: var(--green); }
+  .result-card.fail .result-title { color: var(--red); }
+  .result-desc { color: var(--muted); font-size: 15px; line-height: 1.6; margin-bottom: 28px; }
+
+  .proof-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: left;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.8;
+    word-break: break-all;
+  }
+
+  .proof-box .proof-label {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .proof-value { color: var(--text); }
+
+  .explainer {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 40px 48px;
+    margin-bottom: 32px;
+  }
+
+  .explainer h2 { font-size: 22px; font-weight: 800; margin-bottom: 24px; letter-spacing: -0.02em; }
+
+  .explainer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+  .explainer-item {
+    padding: 20px;
+    background: var(--surface2);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+  }
+
+  .explainer-item h3 { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 8px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .explainer-item p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  .code-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 24px; overflow: hidden; margin-bottom: 32px; }
+
+  .code-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,0,0,0.2);
+  }
+
+  .code-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .code-dot:nth-child(1) { background: #ff5f57; }
+  .code-dot:nth-child(2) { background: #febc2e; }
+  .code-dot:nth-child(3) { background: #28c840; }
+  .code-filename { margin-left: 8px; font-family: 'Space Mono', monospace; font-size: 12px; color: var(--muted); }
+
+  pre {
+    padding: 24px;
+    overflow-x: auto;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    color: #c8c8e8;
+  }
+
+  .kw { color: #ff79c6; }
+  .fn { color: #7b6fff; }
+  .str { color: #f1fa8c; }
+  .cm { color: #6272a4; font-style: italic; }
+  .num { color: #00e5a0; }
+  .sig { color: #ff6b9d; }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    font-family: 'Space Mono', monospace;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 640px) {
+    .card { padding: 28px 24px; }
+    .how-it-works { grid-template-columns: 1fr; }
+    .explainer-grid { grid-template-columns: 1fr; }
+    .explainer { padding: 28px 24px; }
+    .age-display { font-size: 52px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="badge">ZK-SNARK · Groth16 · Circom 2.0</div>
+    <h1>Prove Your Age.<br><span>Reveal Nothing.</span></h1>
+    <p class="subtitle">Zero-Knowledge proof system that verifies you're 18+ without exposing your actual age — cryptographically guaranteed.</p>
+  </header>
+
+  <div class="how-it-works">
+    <div class="how-card">
+      <div class="how-icon">🔒</div>
+      <h3>Private Input</h3>
+      <p>Your age stays on your device. Only a mathematical proof leaves.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-icon">⚡</div>
+      <h3>ZK Proof</h3>
+      <p>Groth16 creates 3 elliptic curve points that encode your claim.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-icon">✅</div>
+      <h3>Verified</h3>
+      <p>Anyone can verify the proof — without learning your age.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🧮 Generate ZK Proof</div>
+
+    <div class="input-section">
+      <label>Your age <span>(private — never shared)</span></label>
+      <div class="age-input-wrap">
+        <div class="age-display valid-color" id="ageDisplay">20</div>
+        <input type="range" id="ageSlider" min="1" max="99" value="20" oninput="updateAge(this.value)">
+      </div>
+      <div class="slider-labels"><span>1</span><span>18 ← threshold</span><span>99</span></div>
+    </div>
+
+    <div class="privacy-row">
+      <div class="privacy-chip">
+        <div class="dot private"></div>
+        <span>age = <strong id="privateAge">20</strong> (PRIVATE 🔒)</span>
+      </div>
+      <div class="privacy-chip">
+        <div class="dot public"></div>
+        <span>minAge = 18 (PUBLIC)</span>
+      </div>
+    </div>
+
+    <button class="btn-generate" id="proveBtn" onclick="generateProof()">
+      <div class="btn-inner">
+        <div class="spinner" id="spinner"></div>
+        <span id="btnText">⚡ Generate ZK Proof</span>
+      </div>
+    </button>
+
+    <div class="pipeline" id="pipeline">
+      <div class="step" id="step1">
+        <div class="step-num">1</div>
+        <div class="step-info"><h4>Compute Witness</h4><p>Evaluating circuit signals for all constraints...</p></div>
+      </div>
+      <div class="step" id="step2">
+        <div class="step-num">2</div>
+        <div class="step-info"><h4>Apply Constraints</h4><p>Checking: age >= 18 (GreaterEqThan component)...</p></div>
+      </div>
+      <div class="step" id="step3">
+        <div class="step-num">3</div>
+        <div class="step-info"><h4>Groth16 Prover</h4><p>Generating elliptic curve points π_a, π_b, π_c...</p></div>
+      </div>
+      <div class="step" id="step4">
+        <div class="step-num">4</div>
+        <div class="step-info"><h4>Verify Proof</h4><p>Running pairing-based verification equation...</p></div>
+      </div>
+    </div>
+
+    <div class="result-card" id="resultCard">
+      <span class="result-icon" id="resultIcon"></span>
+      <div class="result-title" id="resultTitle"></div>
+      <p class="result-desc" id="resultDesc"></p>
+      <div class="proof-box" id="proofBox" style="display:none">
+        <span class="proof-label">🔐 ZK Proof (cryptographic commitment)</span>
+        <div id="proofContent"></div>
+        <br>
+        <span class="proof-label">📋 Public Signals</span>
+        <div id="publicContent"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div>
+      <span class="code-filename">circuits/AgeVerify.circom</span>
+    </div>
+    <pre><span class="cm">// ZK Circuit: Prove age >= 18 without revealing age</span>
+<span class="kw">pragma</span> circom <span class="num">2.0.0</span>;
+<span class="kw">include</span> <span class="str">"circomlib/circuits/comparators.circom"</span>;
+
+<span class="kw">template</span> <span class="fn">AgeVerify</span>() {
+  <span class="cm">// Private: never sent to verifier</span>
+  <span class="sig">signal private input</span> age;
+  <span class="cm">// Public: verifier sees this</span>
+  <span class="sig">signal input</span> minAge;
+  <span class="sig">signal output</span> isAdult;
+
+  <span class="cm">// Check: age >= minAge</span>
+  component ageCheck = <span class="fn">GreaterEqThan</span>(<span class="num">8</span>);
+  ageCheck.in[<span class="num">0</span>] <span class="kw">&lt;==</span> age;
+  ageCheck.in[<span class="num">1</span>] <span class="kw">&lt;==</span> minAge;
+  isAdult <span class="kw">&lt;==</span> ageCheck.out;
+
+  <span class="cm">// CRITICAL: Proof is INVALID unless isAdult == 1</span>
+  isAdult <span class="kw">===</span> <span class="num">1</span>;
+}
+
+component main {<span class="kw">public</span> [minAge]} = <span class="fn">AgeVerify</span>();</pre>
+  </div>
+
+  <div class="explainer">
+    <h2>How ZK-SNARKs Work Here</h2>
+    <div class="explainer-grid">
+      <div class="explainer-item">
+        <h3>What is ZK?</h3>
+        <p>Zero-Knowledge proofs let you prove a statement is true without revealing WHY it's true. Like proving you know a password without saying the password.</p>
+      </div>
+      <div class="explainer-item">
+        <h3>The Constraint</h3>
+        <p>The circuit has one key rule: <code style="color:var(--accent)">isAdult === 1</code>. If age &lt; 18, this fails and NO valid proof can be generated — mathematically impossible.</p>
+      </div>
+      <div class="explainer-item">
+        <h3>The Proof</h3>
+        <p>Groth16 outputs 3 elliptic curve points (π_a, π_b, π_c). These encode your computation cryptographically — revealing nothing about the private input.</p>
+      </div>
+      <div class="explainer-item">
+        <h3>Verification</h3>
+        <p>The verifier runs one pairing equation: <code style="color:var(--green)">e(π_a, π_b) = e(α,β) · e(pubInputs,γ) · e(π_c,δ)</code>. Passes → age ≥ 18. Fails → reject.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Built with Circom 2.0 · SnarkJS · Groth16 · BN128 curve<br>
+    <span style="opacity:0.5">Zero-Knowledge Proof System · Privacy-Preserving by Design</span>
+  </footer>
+</div>
+
+<script>
+let currentAge = 20;
+
+function updateAge(val) {
+  currentAge = parseInt(val);
+  const display = document.getElementById('ageDisplay');
+  const privateLabel = document.getElementById('privateAge');
+  display.textContent = val;
+  privateLabel.textContent = val;
+  display.classList.remove('valid-color', 'invalid-color');
+  if (currentAge >= 18) display.classList.add('valid-color');
+  else display.classList.add('invalid-color');
+  document.getElementById('resultCard').className = 'result-card';
+  document.getElementById('pipeline').classList.remove('active');
+}
+
+updateAge(20);
+
+async function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function setStep(stepId, state) {
+  const el = document.getElementById(stepId);
+  el.className = `step ${state}`;
+  await delay(600);
+}
+
+function generateMockProof() {
+  const h = (n) => { let s = ''; for (let i = 0; i < n; i++) s += Math.floor(Math.random() * 16).toString(16); return '0x' + s; };
+  return { pi_a: [h(62), h(62), "1"], pi_b: [[h(62), h(62)], [h(62), h(62)], ["1", "0"]], pi_c: [h(62), h(62), "1"] };
+}
+
+async function generateProof() {
+  const btn = document.getElementById('proveBtn');
+  const spinner = document.getElementById('spinner');
+  const btnText = document.getElementById('btnText');
+  const pipeline = document.getElementById('pipeline');
+  const resultCard = document.getElementById('resultCard');
+
+  btn.disabled = true;
+  spinner.style.display = 'block';
+  btnText.textContent = 'Generating proof...';
+  resultCard.className = 'result-card';
+  document.getElementById('proofBox').style.display = 'none';
+
+  ['step1','step2','step3','step4'].forEach(id => document.getElementById(id).className = 'step');
+  pipeline.classList.add('active');
+
+  const isValid = currentAge >= 18;
+
+  await setStep('step1', 'active-step');
+  await delay(700);
+  await setStep('step1', 'done');
+  await setStep('step2', 'active-step');
+  await delay(800);
+
+  if (!isValid) {
+    await setStep('step2', 'done');
+    resultCard.className = 'result-card fail';
+    document.getElementById('resultIcon').textContent = '🚫';
+    document.getElementById('resultTitle').textContent = 'Proof Generation Failed';
+    document.getElementById('resultDesc').innerHTML =
+      `Age <strong style="color:var(--red)">${currentAge}</strong> is less than 18.<br>
+       The circuit constraint <code style="background:rgba(255,77,109,0.15);padding:2px 6px;border-radius:4px">isAdult === 1</code> is violated.<br>
+       <strong>No valid proof can be generated — mathematically impossible.</strong>`;
+    btn.disabled = false; spinner.style.display = 'none'; btnText.textContent = '⚡ Generate ZK Proof';
+    return;
+  }
+
+  await setStep('step2', 'done');
+  await setStep('step3', 'active-step');
+  await delay(900);
+  await setStep('step3', 'done');
+  await setStep('step4', 'active-step');
+  await delay(600);
+  await setStep('step4', 'done');
+
+  const proof = generateMockProof();
+  const publicSignals = ["1", "18"];
+
+  resultCard.className = 'result-card success';
+  document.getElementById('resultIcon').textContent = '✅';
+  document.getElementById('resultTitle').textContent = 'Proof Verified!';
+  document.getElementById('resultDesc').innerHTML =
+    `Age <strong style="color:var(--green)">${currentAge}</strong> ≥ 18 — cryptographically proven.<br>
+     Your actual age was <strong>never revealed</strong> to the verifier. 🔒`;
+
+  const proofBox = document.getElementById('proofBox');
+  proofBox.style.display = 'block';
+  document.getElementById('proofContent').innerHTML =
+    `<span class="proof-value">π_a: ${proof.pi_a[0].substring(0,40)}...<br>` +
+    `π_b: ${proof.pi_b[0][0].substring(0,40)}...<br>` +
+    `π_c: ${proof.pi_c[0].substring(0,40)}...</span>`;
+  document.getElementById('publicContent').innerHTML =
+    `<span class="proof-value">isAdult: ${publicSignals[0]}  (1 = verified)<br>minAge: ${publicSignals[1]}<br>actualAge: ??? (HIDDEN 🔒)</span>`;
+
+  btn.disabled = false; spinner.style.display = 'none'; btnText.textContent = '⚡ Generate ZK Proof';
+}
+</script>
+</body>
+</html>

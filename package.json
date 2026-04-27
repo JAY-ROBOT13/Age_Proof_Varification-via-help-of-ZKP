@@ -1,0 +1,15 @@
+{
+  "name": "zk-age-verify",
+  "version": "1.0.0",
+  "description": "Privacy-Preserving Age Verification using ZK-SNARKs",
+  "scripts": {
+    "setup": "bash scripts/setup.sh",
+    "prove": "node scripts/prove.js",
+    "verify": "node scripts/verify.js",
+    "demo": "node scripts/demo.js"
+  },
+  "dependencies": {
+    "circomlib": "^2.0.5",
+    "snarkjs": "^0.7.3"
+  }
+}
